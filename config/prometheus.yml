@@ -1,0 +1,17 @@
+global:
+  scrape_interval: 15s
+  external_labels:
+    monitor: "pipeline-monitor"
+
+scrape_configs:
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: "producer-service"
+    static_configs:
+      - targets: ["producer:8080"]
+
+  - job_name: "consumer-service"
+    static_configs:
+      - targets: ["consumer:8080"]
