@@ -73,9 +73,23 @@ You must have the following installed to run the solution:
 
 ## 6. Future Improvements
 
-This implementation provides a robust baseline. For production readiness and advanced functionality, consider these improvements:
+The current implementation is a good prototype. To make the pipeline truly production-ready, the following improvements are critical:
 
-* **Security:** Change all default credentials defined in the `.env` file to unique, secure passwords.
-* **Reliability (DLQ):** Implement a **Dead Letter Queue (DLQ)** in Kafka to capture and handle events that fail processing (e.g., malformed JSON).
-* **Aggregation:** Introduce proper **windowed aggregation** logic in the Go Consumer (e.g., hourly count of unique users) to fulfill more complex analytical requirements.
-* **Metrics Detail:** Integrate a JMX Exporter alongside Kafka to enable Prometheus to scrape deeper operational metrics.
+### Application Resilience and Reliability
+
+* **Dead Letter Queue (DLQ):** Implement a dedicated **Dead Letter Queue (DLQ)** topic in Kafka. If the consumer encounters a non-recoverable error (e.g., malformed JSON), it should send the failed message to the DLQ for later inspection and reprocessing.
+* **Graceful Shutdown:** Implement signal handling in Go services (listening for `SIGTERM`/`SIGINT`) to ensure resources (Kafka writers/readers, database connections) are closed cleanly, preventing data corruption or connection leaks.
+* **Backoff Policies:** Integrate a **backoff and retry mechanism** for all external connections (Kafka and MongoDB). If a connection fails, the application should wait for an increasing duration before retrying, instead of crashing or spamming the resource.
+
+### Data Integrity (Kafka)
+
+* **Required Acks:** Configure the Kafka Producer to use **`RequiredAcks: AllISRs`** (or its equivalent in the chosen library) to ensure high durability and guarantee that messages are replicated before being acknowledged.
+
+### Security and Configuration
+
+* **Secure Environment:** Currently, the Go services use hardcoded credentials alongside environment variables passed from the `.env`. This should be improved by eliminating **all hardcoded credentials** and reading them purely from environment variables to simplify rotation and secure deployment.
+* **Credentials**: Change all default credentials defined in the `.env` file to unique, secure passwords.
+
+### Observability Detail
+
+* **Kafka JMX:** Add a **JMX Exporter** sidecar container to the Kafka service. This will allow Prometheus to scrape crucial JVM and internal operational metrics (e.g., consumer lag, partition health) that are currently unavailable.
